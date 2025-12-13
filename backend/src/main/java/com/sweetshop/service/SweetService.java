@@ -15,6 +15,7 @@ import com.sweetshop.repository.PurchaseHistoryRepository;
 import com.sweetshop.repository.SweetRepository;
 import com.sweetshop.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,7 +27,9 @@ import java.util.UUID;
 
 /**
  * Service for sweet operations including CRUD, search, and inventory management.
+ * Handles business logic for sweet products with proper transaction management.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SweetService {
@@ -40,6 +43,7 @@ public class SweetService {
      */
     @Transactional(readOnly = true)
     public Page<SweetResponse> getAllSweets(Pageable pageable) {
+        log.debug("Fetching all sweets - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         return sweetRepository.findAll(pageable).map(this::mapToResponse);
     }
 
@@ -48,6 +52,7 @@ public class SweetService {
      */
     @Transactional(readOnly = true)
     public SweetResponse getSweetById(UUID id) {
+        log.debug("Fetching sweet by ID: {}", id);
         Sweet sweet = findSweetById(id);
         return mapToResponse(sweet);
     }

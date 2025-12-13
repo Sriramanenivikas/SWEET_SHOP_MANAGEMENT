@@ -50,6 +50,8 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/sweets/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/sweets").permitAll()
                         // Admin only endpoints
                         .requestMatchers(HttpMethod.POST, "/sweets").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/sweets/**").hasRole("ADMIN")

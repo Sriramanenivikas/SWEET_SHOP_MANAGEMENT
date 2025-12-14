@@ -125,7 +125,7 @@ node seed-data.js
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@sweetshop.com | Admin@123 |
+| Admin | newadmin@sweetshop.com | Admin@123 |
 | Customer | customer@sweetshop.com | Customer@123 |
 
 ### Access URLs (Local)

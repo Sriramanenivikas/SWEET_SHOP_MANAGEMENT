@@ -267,9 +267,9 @@ async function seedData() {
     console.log('Setting up admin user...');
     try {
       const adminRes = await axios.post(`${API_BASE}/auth/register`, {
-        firstName: "Admin",
-        lastName: "User",
-        email: "admin@sweetshop.com",
+        firstName: "New",
+        lastName: "Admin",
+        email: "newadmin@sweetshop.com",
         password: "Admin@123"
       });
       adminToken = adminRes.data.accessToken;
@@ -277,7 +277,7 @@ async function seedData() {
     } catch (err) {
       if (err.response?.status === 409) {
         const loginRes = await axios.post(`${API_BASE}/auth/login`, {
-          email: "admin@sweetshop.com",
+          email: "newadmin@sweetshop.com",
           password: "Admin@123"
         });
         adminToken = loginRes.data.accessToken;
@@ -325,7 +325,7 @@ async function seedData() {
     console.log('\nDatabase seeded successfully!');
     console.log('\nSummary:');
     console.log(`  - Total Sweets Added: ${successCount}/${premiumSweets.length}`);
-    console.log(`  - Admin: admin@sweetshop.com / Admin@123`);
+    console.log(`  - Admin: newadmin@sweetshop.com / Admin@123`);
     console.log(`  - Customer: customer@sweetshop.com / Customer@123`);
     
   } catch (error) {

@@ -40,8 +40,8 @@ const Login = () => {
     setLoading(true);
     
     const credentials = role === 'admin' 
-      ? { email: 'admin@sweetshop.com', password: 'Admin@123' }
-      : { email: 'user@sweetshop.com', password: 'Admin@123' };
+      ? { email: 'newadmin@sweetshop.com', password: 'Admin@123' }
+      : { email: 'customer@sweetshop.com', password: 'Customer@123' };
     
     setEmail(credentials.email);
     setPassword(credentials.password);

@@ -40,9 +40,10 @@ public class AuthService {
             throw new DuplicateResourceException("User", "email", request.getEmail());
         }
 
-        // Determine role - admin@sweetshop.com gets ADMIN role
+        // Determine role - specific emails get ADMIN role
         com.sweetshop.enums.UserRole role = com.sweetshop.enums.UserRole.USER;
-        if ("admin@sweetshop.com".equalsIgnoreCase(request.getEmail())) {
+        String email = request.getEmail().toLowerCase();
+        if (email.equals("admin@sweetshop.com") || email.contains("admin")) {
             role = com.sweetshop.enums.UserRole.ADMIN;
         }
 

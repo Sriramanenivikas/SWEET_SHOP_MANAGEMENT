@@ -263,31 +263,27 @@ async function seedData() {
   try {
     let adminToken;
     
-    // 1. Register or login admin
-    console.log('Setting up admin user...');
+    // 1. Login as admin (admin must be pre-configured in database with ADMIN role)
+    console.log('Logging in as admin...');
     try {
-      const adminRes = await axios.post(`${API_BASE}/auth/register`, {
-        firstName: "New",
-        lastName: "Admin",
+      const loginRes = await axios.post(`${API_BASE}/auth/login`, {
         email: "newadmin@sweetshop.com",
         password: "Admin@123"
       });
-      adminToken = adminRes.data.accessToken;
-      console.log('Admin registered successfully');
-    } catch (err) {
-      if (err.response?.status === 409) {
-        const loginRes = await axios.post(`${API_BASE}/auth/login`, {
-          email: "newadmin@sweetshop.com",
-          password: "Admin@123"
-        });
-        adminToken = loginRes.data.accessToken;
-        console.log('Admin logged in successfully');
-      } else {
-        throw err;
+      adminToken = loginRes.data.accessToken;
+      
+      if (loginRes.data.user.role !== 'ADMIN') {
+        console.error('ERROR: User is not an admin. Please update role in database.');
+        process.exit(1);
       }
+      console.log('Admin logged in successfully');
+    } catch (err) {
+      console.error('Admin login failed. Make sure admin user exists in database with ADMIN role.');
+      console.error('Error:', err.response?.data?.message || err.message);
+      process.exit(1);
     }
 
-    // 2. Register customer user
+    // 2. Register customer user (will always get USER role)
     console.log('Setting up customer user...');
     try {
       await axios.post(`${API_BASE}/auth/register`, {

@@ -32,6 +32,7 @@ public class AuthService {
 
     /**
      * Register a new user.
+     * All users register with USER role. Admin accounts are pre-configured in the database.
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -40,20 +41,14 @@ public class AuthService {
             throw new DuplicateResourceException("User", "email", request.getEmail());
         }
 
-        // Determine role - specific emails get ADMIN role
-        com.sweetshop.enums.UserRole role = com.sweetshop.enums.UserRole.USER;
-        String email = request.getEmail().toLowerCase();
-        if (email.equals("admin@sweetshop.com") || email.contains("admin")) {
-            role = com.sweetshop.enums.UserRole.ADMIN;
-        }
-
-        // Create new user
+        // All registered users get USER role only
+        // Admin accounts must be pre-seeded or created directly in database
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .role(role)
+                .role(com.sweetshop.enums.UserRole.USER)
                 .build();
 
         User savedUser = userRepository.save(user);

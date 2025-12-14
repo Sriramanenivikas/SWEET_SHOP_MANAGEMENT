@@ -1,19 +1,29 @@
 # Sweet Shop Management System
 
-A full-stack web application for managing an Indian sweet shop inventory. The system provides user authentication, product catalog management, search functionality, and role-based access control for administrators.
+A full-stack web application for managing a sweet shop inventory with user authentication, product catalog, search functionality, and role-based access control.
+
+## Live Demo
+
+- **Application :** https://sweet-shop-management-nu.vercel.app
+
+### Demo Credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | newadmin@sweetshop.com | Admin@123 |
+| Customer | customer@sweetshop.com | Customer@123 |
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [API Reference](#api-reference)
 - [Testing](#testing)
-- [Deployment](#deployment)
+- [Screenshots](#screenshots)
 - [Development Journey](#development-journey)
 - [My AI Usage](#my-ai-usage)
-- [Known Limitations](#known-limitations)
+
 
 ## Overview
 
@@ -39,47 +49,17 @@ This application allows customers to browse and purchase Indian sweets, while ad
 ## Tech Stack
 
 | Layer | Technology |
-|-------|------------|
+|-------|---------|
 | Backend | Java 17, Spring Boot 3.2.1, Spring Security 6 |
 | Database | PostgreSQL 15 |
 | Authentication | JWT (jjwt 0.12.3) |
 | Testing | JUnit 5, Mockito, Spring Security Test |
-| Code Coverage | JaCoCo (91% coverage) |
 | Frontend | React 18, React Router 6 |
 | Styling | Tailwind CSS 3.4 |
 | HTTP Client | Axios |
 | Build Tools | Maven 3.9+, npm |
 | Containerization | Docker, Docker Compose |
 
-## Project Structure
-
-```
-sweet-shop/
-├── backend/
-│   ├── src/main/java/com/sweetshop/
-│   │   ├── config/           # Security and CORS configuration
-│   │   ├── controller/       # REST API controllers
-│   │   ├── dto/              # Request/Response data transfer objects
-│   │   ├── entity/           # JPA entity classes
-│   │   ├── enums/            # UserRole, SweetCategory enums
-│   │   ├── exception/        # Custom exceptions and global handler
-│   │   ├── repository/       # Spring Data JPA repositories
-│   │   ├── security/         # JWT filter and token provider
-│   │   └── service/          # Business logic layer
-│   ├── src/test/java/        # Unit and integration tests
-│   ├── Dockerfile
-│   └── pom.xml
-├── frontend/
-│   ├── src/
-│   │   ├── components/       # Reusable UI components
-│   │   ├── pages/            # Page components
-│   │   ├── context/          # React context for auth state
-│   │   └── services/         # API service layer
-│   └── public/               # Static assets and images
-├── docker-compose.yml
-├── seed-data.js
-└── README.md
-```
 
 ## Getting Started
 
@@ -214,6 +194,8 @@ Each sweet has: unique ID, name, category, price, and quantity in stock (as requ
 
 ## Testing
 
+The project follows Test-Driven Development principles. See [TEST_REPORT.md](TEST_REPORT.md) for the complete test report.
+
 ### Running Tests
 
 ```bash
@@ -221,98 +203,49 @@ cd backend
 mvn test
 ```
 
-### Generating Coverage Report
+### Test Coverage
 
 ```bash
 mvn test jacoco:report
+# Report at: target/site/jacoco/index.html
 ```
 
-The report will be available at `backend/target/site/jacoco/index.html`.
+### Summary
 
-### Test Report
-
-**Test Execution Summary:**
-```
-Tests run: 101, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS
-```
-
-### Coverage Summary
-
-| Package | Coverage |
-|---------|----------|
-| Services | 98% |
-| Controllers | 100% |
-| Security | 80% |
-| Overall | 91% |
-
-The test suite includes 101 tests covering:
-- Unit tests for service layer business logic
-- Integration tests for REST endpoints
-- Security tests for authentication and authorization
-- Repository tests for data access layer
+| Metric | Value |
+|--------|-------|
+| Total Tests | 101 |
+| Passed | 101 |
+| Failed | 0 |
+| Line Coverage | 91% |
 
 ### Test Categories
 
-| Category | Count | Description |
-|----------|-------|-------------|
-| AuthServiceTest | 7 | Registration, login, password encoding |
-| SweetServiceTest | 17 | CRUD operations, search, purchase, restock |
-| JwtTokenProviderTest | 9 | Token generation, validation, expiry |
-| AuthControllerTest | 11 | Auth endpoint integration tests |
-| SweetControllerTest | 28 | Sweet endpoint integration tests |
-| UserRepositoryTest | 6 | User data access tests |
-| SweetRepositoryTest | 12 | Sweet data access tests |
-| SecurityConfigTest | 10 | Security configuration tests |
-| SweetShopApplicationTests | 1 | Application context test |
+- **Service Tests:** Business logic validation (24 tests)
+- **Controller Tests:** REST endpoint integration (39 tests)  
+- **Security Tests:** Authentication and authorization (19 tests)
+- **Repository Tests:** Data access layer (18 tests)
+- **Context Test:** Application startup (1 test)
 
 ## Screenshots
 
-### Landing Page
-[Screenshot placeholder - Landing page with hero section]
+### Login Page
+(screenshots/login.png)
 
 ### Shop Page - Product Catalog
-[Screenshot placeholder - Grid of sweets with images and prices]
+![Shop Page](screenshots/shop.png)
 
 ### Search and Filter
-[Screenshot placeholder - Search bar and category filter in action]
+![Search Filter](screenshots/search.png)
 
 ### Product Purchase
-[Screenshot placeholder - Purchase modal with quantity selector]
+![Purchase](screenshots/purchase.png)
 
 ### Admin Dashboard
-[Screenshot placeholder - Admin panel with product management]
-
-### Login Page
-[Screenshot placeholder - Login form]
+![Admin Dashboard](screenshots/admin.png)
 
 ### Register Page
-[Screenshot placeholder - Registration form]
-
-## Deployment
-
-### Backend Deployment (Railway)
-
-1. Create a Railway account at https://railway.app
-2. Create a new project and add a PostgreSQL database
-3. Connect your GitHub repository
-4. Set the following environment variables:
-   - `DATABASE_URL` - Provided by Railway PostgreSQL
-   - `JWT_SECRET` - A secure random string (min 256 bits)
-   - `CORS_ALLOWED_ORIGINS` - Your Vercel frontend URL
-
-### Frontend Deployment (Vercel)
-
-1. Create a Vercel account at https://vercel.com
-2. Import your GitHub repository
-3. Set the root directory to `frontend`
-4. Add environment variable:
-   - `REACT_APP_API_URL` - Your Railway backend URL (e.g., https://your-app.railway.app/api)
-
-### Live Demo
-
-- Frontend: [Vercel URL - to be added after deployment]
-- Backend API: [Railway URL - to be added after deployment]
+![Register](screenshots/register.png)
 
 ## Development Journey
 
@@ -329,51 +262,46 @@ Key commits showing this pattern:
 - `feat(sweets): Implement CRUD, search and inventory operations` - GREEN
 - `refactor(backend): Add logging and improve error messages` - REFACTOR
 
-Initial TDD cycles are visible in commits `0452db0` through `e1a7518`. Additional test coverage was added later to achieve 91% overall coverage, demonstrating continuous quality improvement.
+Initial TDD cycles are visible in commits `0452db0` through `e1a7518`. Additional test coverage was added later to achieve overall coverage, demonstrating continuous quality improvement.
 
 ## My AI Usage
 
+This section documents how AI tools were used during development, as required by the assignment guidelines.
+
 ### Tools Used
 
-- GitHub Copilot for code completion
+- GitHub Copilot  
 
-### How AI Assisted Development
+### Where AI Helped
 
-| Task | AI Involvement |
-|------|----------------|
-| Project scaffolding | Generated initial Spring Boot configuration and folder structure |
-| Boilerplate code | JWT security configuration, DTO classes, exception handlers |
-| UI components | Basic Tailwind CSS component templates |
-| Test structure | Initial test class scaffolding |
+**Project Setup and Boilerplate:**
+I used Copilot to generate the initial Spring Boot project structure, including the basic security configuration and JWT setup. This saved time on repetitive configuration that follows well-established patterns.
 
-### What I Wrote Manually
+**DTO and Entity Classes:**
+Copilot suggested the data transfer objects and entity field definitions based on the requirements. I reviewed and modified these to match the specific needs of the sweet shop domain.
 
-- Architecture decisions and package organization
-- Core business logic in service layer
-- Security configuration and JWT validation logic
-- Custom exception handling
-- All test assertions and edge case coverage
-- Database schema design and entity relationships
+**Test Scaffolding:**
+For the test classes, I used Copilot to generate the initial test structure and some common test patterns. I then wrote the specific assertions and edge cases manually to ensure meaningful coverage.
+
+**Frontend Components:**
+Basic React component structure and Tailwind CSS classes were suggested by Copilot. The actual component logic, state management, and API integration were written manually.
+
+### What I Wrote Without AI
+
+- All business logic in the service layer
+- Security configuration and authorization rules
 - API endpoint design and request/response contracts
+- Database schema and entity relationships
+- Test assertions and edge case identification
+- Error handling strategy
+- Frontend routing and state management
+- Search and filter implementation
 
-### Reflection
+### Commits with AI Assistance
 
-AI tools helped reduce time spent on repetitive boilerplate code, allowing me to focus on the aspects that matter most: business logic, security, and thorough testing. The TDD approach ensured that AI-generated code was validated against clearly defined requirements. Every piece of AI-suggested code was reviewed and often modified to fit the project's specific needs.
-
-The 91% test coverage and clean separation of concerns demonstrate that AI assistance, when used responsibly, can accelerate development without sacrificing code quality.
-
-## Known Limitations
-
-1. **No payment processing** - Purchases only decrement inventory; no actual payment integration
-2. **No email verification** - User registration is immediate without email confirmation
-3. **No password reset** - Users cannot recover forgotten passwords through the application
-4. **No rate limiting** - API endpoints do not have request throttling
-5. **Single currency** - All prices are in INR only
-
-## License
-
-MIT License
-
----
-
-Built as a TDD Kata assignment demonstrating full-stack development with emphasis on test-driven development, clean code practices, and security best practices.
+The following commits include AI-generated code (marked with Co-authored-by):
+- Initial project setup
+- JWT security boilerplate
+- DTO class generation
+- Basic test structure
+ 

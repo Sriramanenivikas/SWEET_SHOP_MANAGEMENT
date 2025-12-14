@@ -40,12 +40,19 @@ public class AuthService {
             throw new DuplicateResourceException("User", "email", request.getEmail());
         }
 
+        // Determine role - admin@sweetshop.com gets ADMIN role
+        com.sweetshop.enums.UserRole role = com.sweetshop.enums.UserRole.USER;
+        if ("admin@sweetshop.com".equalsIgnoreCase(request.getEmail())) {
+            role = com.sweetshop.enums.UserRole.ADMIN;
+        }
+
         // Create new user
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
+                .role(role)
                 .build();
 
         User savedUser = userRepository.save(user);

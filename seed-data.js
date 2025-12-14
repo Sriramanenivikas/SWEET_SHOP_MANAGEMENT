@@ -3,7 +3,8 @@
 
 const axios = require('axios');
 
-const API_BASE = 'http://localhost:8080/api';
+// CHANGE THIS TO YOUR RAILWAY URL
+const API_BASE = process.env.API_URL || 'http://localhost:8080/api';
 
 // Premium Indian sweets with correct categories and high-quality images
 const premiumSweets = [

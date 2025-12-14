@@ -11,6 +11,7 @@ import com.sweetshop.repository.UserRepository;
 import com.sweetshop.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,10 +29,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for AuthService.
- */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("AuthService Unit Tests")
 class AuthServiceTest {
 
     @Mock
@@ -46,22 +45,27 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
+    private RegisterRequest validRegisterRequest;
+    private LoginRequest validLoginRequest;
+    private User testUser;
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(authService, "jwtExpiration", 86400000L);
-    }
 
-    @Test
-    @DisplayName("Should register new user successfully")
-    void register_withValidData_returnsAuthResponse() {
-        RegisterRequest request = RegisterRequest.builder()
+        validRegisterRequest = RegisterRequest.builder()
                 .email("test@example.com")
                 .password("Password123")
                 .firstName("John")
                 .lastName("Doe")
                 .build();
 
-        User savedUser = User.builder()
+        validLoginRequest = LoginRequest.builder()
+                .email("test@example.com")
+                .password("Password123")
+                .build();
+
+        testUser = User.builder()
                 .id(UUID.randomUUID())
                 .email("test@example.com")
                 .password("encodedPassword")
@@ -69,95 +73,136 @@ class AuthServiceTest {
                 .lastName("Doe")
                 .role(UserRole.USER)
                 .build();
-
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        when(jwtTokenProvider.generateToken(anyString())).thenReturn("jwt-token");
-
-        AuthResponse response = authService.register(request);
-
-        assertThat(response.getAccessToken()).isEqualTo("jwt-token");
-        assertThat(response.getUser().getEmail()).isEqualTo("test@example.com");
-        verify(userRepository).save(any(User.class));
     }
 
-    @Test
-    @DisplayName("Should throw exception for duplicate email")
-    void register_withExistingEmail_throwsException() {
-        RegisterRequest request = RegisterRequest.builder()
-                .email("existing@example.com")
-                .password("Password123")
-                .firstName("John")
-                .lastName("Doe")
-                .build();
+    @Nested
+    @DisplayName("Registration Tests")
+    class RegistrationTests {
 
-        when(userRepository.existsByEmail(anyString())).thenReturn(true);
+        @Test
+        @DisplayName("Should register user with valid data")
+        void register_WithValidData_ReturnsAuthResponse() {
+            when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+            when(userRepository.save(any(User.class))).thenReturn(testUser);
+            when(jwtTokenProvider.generateToken(anyString())).thenReturn("jwt-token");
 
-        assertThatThrownBy(() -> authService.register(request))
-                .isInstanceOf(DuplicateResourceException.class);
+            AuthResponse response = authService.register(validRegisterRequest);
 
-        verify(userRepository, never()).save(any(User.class));
+            assertThat(response).isNotNull();
+            assertThat(response.getAccessToken()).isEqualTo("jwt-token");
+            assertThat(response.getTokenType()).isEqualTo("Bearer");
+            assertThat(response.getUser()).isNotNull();
+            assertThat(response.getUser().getEmail()).isEqualTo("test@example.com");
+            assertThat(response.getUser().getRole()).isEqualTo(UserRole.USER);
+
+            verify(userRepository).existsByEmail("test@example.com");
+            verify(passwordEncoder).encode("Password123");
+            verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception for duplicate email")
+        void register_WithDuplicateEmail_ThrowsDuplicateException() {
+            when(userRepository.existsByEmail(anyString())).thenReturn(true);
+
+            assertThatThrownBy(() -> authService.register(validRegisterRequest))
+                    .isInstanceOf(DuplicateResourceException.class)
+                    .hasMessageContaining("email");
+
+            verify(userRepository).existsByEmail("test@example.com");
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Should encode password before saving")
+        void register_EncodesPassword() {
+            when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(passwordEncoder.encode("Password123")).thenReturn("$2a$12$encodedHash");
+            when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+                User user = invocation.getArgument(0);
+                assertThat(user.getPassword()).isEqualTo("$2a$12$encodedHash");
+                user.setId(UUID.randomUUID());
+                return user;
+            });
+            when(jwtTokenProvider.generateToken(anyString())).thenReturn("jwt-token");
+
+            authService.register(validRegisterRequest);
+
+            verify(passwordEncoder).encode("Password123");
+        }
     }
 
-    @Test
-    @DisplayName("Should login with valid credentials")
-    void login_withValidCredentials_returnsAuthResponse() {
-        LoginRequest request = LoginRequest.builder()
-                .email("user@example.com")
-                .password("Password123")
-                .build();
+    @Nested
+    @DisplayName("Login Tests")
+    class LoginTests {
 
-        User user = User.builder()
-                .id(UUID.randomUUID())
-                .email("user@example.com")
-                .password("encodedPassword")
-                .firstName("Test")
-                .lastName("User")
-                .role(UserRole.USER)
-                .build();
+        @Test
+        @DisplayName("Should login with valid credentials")
+        void login_WithValidCredentials_ReturnsToken() {
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+            when(jwtTokenProvider.generateToken(anyString())).thenReturn("jwt-token");
 
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-        when(jwtTokenProvider.generateToken(anyString())).thenReturn("jwt-token");
+            AuthResponse response = authService.login(validLoginRequest);
 
-        AuthResponse response = authService.login(request);
+            assertThat(response).isNotNull();
+            assertThat(response.getAccessToken()).isEqualTo("jwt-token");
+            assertThat(response.getUser().getEmail()).isEqualTo("test@example.com");
 
-        assertThat(response.getAccessToken()).isEqualTo("jwt-token");
-        assertThat(response.getUser().getEmail()).isEqualTo("user@example.com");
-    }
+            verify(userRepository).findByEmail("test@example.com");
+            verify(passwordEncoder).matches("Password123", "encodedPassword");
+        }
 
-    @Test
-    @DisplayName("Should throw exception for invalid password")
-    void login_withInvalidPassword_throwsException() {
-        LoginRequest request = LoginRequest.builder()
-                .email("user@example.com")
-                .password("WrongPassword")
-                .build();
+        @Test
+        @DisplayName("Should throw exception for non-existent email")
+        void login_WithInvalidEmail_ThrowsBadCredentials() {
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
-        User user = User.builder()
-                .email("user@example.com")
-                .password("encodedPassword")
-                .build();
+            assertThatThrownBy(() -> authService.login(validLoginRequest))
+                    .isInstanceOf(BadCredentialsException.class);
 
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+            verify(userRepository).findByEmail("test@example.com");
+            verify(passwordEncoder, never()).matches(anyString(), anyString());
+        }
 
-        assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(BadCredentialsException.class);
-    }
+        @Test
+        @DisplayName("Should throw exception for wrong password")
+        void login_WithInvalidPassword_ThrowsBadCredentials() {
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
-    @Test
-    @DisplayName("Should throw exception for non-existent user")
-    void login_withNonExistentUser_throwsException() {
-        LoginRequest request = LoginRequest.builder()
-                .email("nonexistent@example.com")
-                .password("Password123")
-                .build();
+            assertThatThrownBy(() -> authService.login(validLoginRequest))
+                    .isInstanceOf(BadCredentialsException.class);
 
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+            verify(passwordEncoder).matches("Password123", "encodedPassword");
+            verify(jwtTokenProvider, never()).generateToken(anyString());
+        }
 
-        assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(BadCredentialsException.class);
+        @Test
+        @DisplayName("Should return correct user role in response")
+        void login_ReturnsCorrectUserRole() {
+            User adminUser = User.builder()
+                    .id(UUID.randomUUID())
+                    .email("admin@example.com")
+                    .password("encodedPassword")
+                    .firstName("Admin")
+                    .lastName("User")
+                    .role(UserRole.ADMIN)
+                    .build();
+
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(adminUser));
+            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+            when(jwtTokenProvider.generateToken(anyString())).thenReturn("jwt-token");
+
+            LoginRequest adminLogin = LoginRequest.builder()
+                    .email("admin@example.com")
+                    .password("Password123")
+                    .build();
+
+            AuthResponse response = authService.login(adminLogin);
+
+            assertThat(response.getUser().getRole()).isEqualTo(UserRole.ADMIN);
+        }
     }
 }

@@ -5,6 +5,7 @@ import com.sweetshop.dto.request.RestockRequest;
 import com.sweetshop.dto.request.SweetRequest;
 import com.sweetshop.dto.response.PurchaseResponse;
 import com.sweetshop.dto.response.SweetResponse;
+import com.sweetshop.entity.PurchaseHistory;
 import com.sweetshop.entity.Sweet;
 import com.sweetshop.entity.User;
 import com.sweetshop.enums.SweetCategory;
@@ -16,6 +17,7 @@ import com.sweetshop.repository.SweetRepository;
 import com.sweetshop.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,12 +39,12 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
-/**
- * Unit tests for SweetService.
- */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("SweetService Unit Tests")
 class SweetServiceTest {
 
     @Mock
@@ -53,145 +56,404 @@ class SweetServiceTest {
     @Mock
     private PurchaseHistoryRepository purchaseHistoryRepository;
 
+    @Mock
+    private SecurityContext securityContext;
+
+    @Mock
+    private Authentication authentication;
+
     @InjectMocks
     private SweetService sweetService;
 
     private Sweet testSweet;
     private User testUser;
+    private UUID sweetId;
+    private UUID userId;
 
     @BeforeEach
     void setUp() {
+        sweetId = UUID.randomUUID();
+        userId = UUID.randomUUID();
+
         testSweet = Sweet.builder()
-                .id(UUID.randomUUID())
-                .name("Chocolate Truffle")
-                .category(SweetCategory.CHOCOLATE)
-                .price(new BigDecimal("12.99"))
+                .id(sweetId)
+                .name("Kaju Katli")
+                .category(SweetCategory.BARFI)
+                .price(BigDecimal.valueOf(650.00))
                 .quantity(100)
-                .description("Delicious chocolate truffle")
+                .description("Premium cashew fudge")
+                .imageUrl("/BARFI/Kaju_Barfi.jpg")
                 .build();
 
         testUser = User.builder()
-                .id(UUID.randomUUID())
+                .id(userId)
                 .email("user@example.com")
+                .password("encodedPassword")
                 .firstName("Test")
                 .lastName("User")
                 .role(UserRole.USER)
                 .build();
     }
 
-    @Test
-    @DisplayName("Should get all sweets with pagination")
-    void getAllSweets_returnsPageOfSweets() {
-        Page<Sweet> page = new PageImpl<>(List.of(testSweet));
-        when(sweetRepository.findAll(any(PageRequest.class))).thenReturn(page);
+    @Nested
+    @DisplayName("Get All Sweets Tests")
+    class GetAllSweetsTests {
 
-        Page<SweetResponse> result = sweetService.getAllSweets(PageRequest.of(0, 10));
+        @Test
+        @DisplayName("Should return paginated list of sweets")
+        void getAllSweets_ReturnsPaginatedList() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Sweet> sweetPage = new PageImpl<>(List.of(testSweet), pageable, 1);
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getName()).isEqualTo("Chocolate Truffle");
+            when(sweetRepository.findAll(pageable)).thenReturn(sweetPage);
+
+            Page<SweetResponse> result = sweetService.getAllSweets(pageable);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().get(0).getName()).isEqualTo("Kaju Katli");
+
+            verify(sweetRepository).findAll(pageable);
+        }
     }
 
-    @Test
-    @DisplayName("Should get sweet by ID")
-    void getSweetById_existingId_returnsSweet() {
-        when(sweetRepository.findById(any(UUID.class))).thenReturn(Optional.of(testSweet));
+    @Nested
+    @DisplayName("Get Sweet By ID Tests")
+    class GetSweetByIdTests {
 
-        SweetResponse result = sweetService.getSweetById(testSweet.getId());
+        @Test
+        @DisplayName("Should return sweet when ID exists")
+        void getSweetById_WithValidId_ReturnsSweet() {
+            when(sweetRepository.findById(sweetId)).thenReturn(Optional.of(testSweet));
 
-        assertThat(result.getName()).isEqualTo("Chocolate Truffle");
+            SweetResponse result = sweetService.getSweetById(sweetId);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getId()).isEqualTo(sweetId);
+            assertThat(result.getName()).isEqualTo("Kaju Katli");
+            assertThat(result.getCategory()).isEqualTo(SweetCategory.BARFI);
+
+            verify(sweetRepository).findById(sweetId);
+        }
+
+        @Test
+        @DisplayName("Should throw exception when ID not found")
+        void getSweetById_WithInvalidId_ThrowsNotFound() {
+            UUID invalidId = UUID.randomUUID();
+            when(sweetRepository.findById(invalidId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> sweetService.getSweetById(invalidId))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Sweet");
+
+            verify(sweetRepository).findById(invalidId);
+        }
     }
 
-    @Test
-    @DisplayName("Should throw exception for non-existent sweet")
-    void getSweetById_nonExistentId_throwsException() {
-        when(sweetRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+    @Nested
+    @DisplayName("Search Sweets Tests")
+    class SearchSweetsTests {
 
-        assertThatThrownBy(() -> sweetService.getSweetById(UUID.randomUUID()))
-                .isInstanceOf(ResourceNotFoundException.class);
+        @Test
+        @DisplayName("Should filter by name")
+        void searchSweets_ByName_ReturnsMatches() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Sweet> sweetPage = new PageImpl<>(List.of(testSweet), pageable, 1);
+
+            when(sweetRepository.searchSweets(eq("Kaju"), any(), any(), any(), eq(pageable)))
+                    .thenReturn(sweetPage);
+
+            Page<SweetResponse> result = sweetService.searchSweets("Kaju", null, null, null, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().get(0).getName()).contains("Kaju");
+        }
+
+        @Test
+        @DisplayName("Should filter by category")
+        void searchSweets_ByCategory_ReturnsMatches() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Sweet> sweetPage = new PageImpl<>(List.of(testSweet), pageable, 1);
+
+            when(sweetRepository.searchSweets(any(), eq(SweetCategory.BARFI), any(), any(), eq(pageable)))
+                    .thenReturn(sweetPage);
+
+            Page<SweetResponse> result = sweetService.searchSweets(null, SweetCategory.BARFI, null, null, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().get(0).getCategory()).isEqualTo(SweetCategory.BARFI);
+        }
+
+        @Test
+        @DisplayName("Should filter by price range")
+        void searchSweets_ByPriceRange_ReturnsMatches() {
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Sweet> sweetPage = new PageImpl<>(List.of(testSweet), pageable, 1);
+
+            BigDecimal minPrice = BigDecimal.valueOf(500);
+            BigDecimal maxPrice = BigDecimal.valueOf(700);
+
+            when(sweetRepository.searchSweets(any(), any(), eq(minPrice), eq(maxPrice), eq(pageable)))
+                    .thenReturn(sweetPage);
+
+            Page<SweetResponse> result = sweetService.searchSweets(null, null, minPrice, maxPrice, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+        }
     }
 
-    @Test
-    @DisplayName("Should create sweet successfully")
-    void createSweet_withValidData_returnsCreatedSweet() {
-        SweetRequest request = SweetRequest.builder()
-                .name("New Candy")
-                .category(SweetCategory.CANDY)
-                .price(new BigDecimal("5.99"))
-                .quantity(50)
-                .build();
+    @Nested
+    @DisplayName("Create Sweet Tests")
+    class CreateSweetTests {
 
-        Sweet savedSweet = Sweet.builder()
-                .id(UUID.randomUUID())
-                .name("New Candy")
-                .category(SweetCategory.CANDY)
-                .price(new BigDecimal("5.99"))
-                .quantity(50)
-                .build();
+        @Test
+        @DisplayName("Should create sweet with valid data")
+        void createSweet_WithValidData_ReturnsSweet() {
+            SweetRequest request = SweetRequest.builder()
+                    .name("New Sweet")
+                    .category(SweetCategory.LADOO)
+                    .price(BigDecimal.valueOf(400))
+                    .quantity(50)
+                    .description("Test description")
+                    .build();
 
-        when(sweetRepository.save(any(Sweet.class))).thenReturn(savedSweet);
+            Sweet savedSweet = Sweet.builder()
+                    .id(UUID.randomUUID())
+                    .name("New Sweet")
+                    .category(SweetCategory.LADOO)
+                    .price(BigDecimal.valueOf(400))
+                    .quantity(50)
+                    .description("Test description")
+                    .build();
 
-        SweetResponse result = sweetService.createSweet(request);
+            when(sweetRepository.save(any(Sweet.class))).thenReturn(savedSweet);
 
-        assertThat(result.getName()).isEqualTo("New Candy");
-        verify(sweetRepository).save(any(Sweet.class));
+            SweetResponse result = sweetService.createSweet(request);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getName()).isEqualTo("New Sweet");
+            assertThat(result.getCategory()).isEqualTo(SweetCategory.LADOO);
+
+            verify(sweetRepository).save(any(Sweet.class));
+        }
     }
 
-    @Test
-    @DisplayName("Should update sweet successfully")
-    void updateSweet_withValidData_returnsUpdatedSweet() {
-        SweetRequest request = SweetRequest.builder()
-                .name("Updated Truffle")
-                .category(SweetCategory.CHOCOLATE)
-                .price(new BigDecimal("15.99"))
-                .quantity(80)
-                .build();
+    @Nested
+    @DisplayName("Update Sweet Tests")
+    class UpdateSweetTests {
 
-        when(sweetRepository.findById(any(UUID.class))).thenReturn(Optional.of(testSweet));
-        when(sweetRepository.save(any(Sweet.class))).thenReturn(testSweet);
+        @Test
+        @DisplayName("Should update sweet with valid data")
+        void updateSweet_WithValidData_ReturnsUpdated() {
+            SweetRequest request = SweetRequest.builder()
+                    .name("Updated Kaju Katli")
+                    .category(SweetCategory.BARFI)
+                    .price(BigDecimal.valueOf(700))
+                    .quantity(150)
+                    .description("Updated description")
+                    .build();
 
-        SweetResponse result = sweetService.updateSweet(testSweet.getId(), request);
+            when(sweetRepository.findById(sweetId)).thenReturn(Optional.of(testSweet));
+            when(sweetRepository.save(any(Sweet.class))).thenAnswer(i -> i.getArgument(0));
 
-        verify(sweetRepository).save(any(Sweet.class));
+            SweetResponse result = sweetService.updateSweet(sweetId, request);
+
+            assertThat(result.getName()).isEqualTo("Updated Kaju Katli");
+            assertThat(result.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(700));
+
+            verify(sweetRepository).findById(sweetId);
+            verify(sweetRepository).save(any(Sweet.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when updating non-existent sweet")
+        void updateSweet_WithInvalidId_ThrowsNotFound() {
+            UUID invalidId = UUID.randomUUID();
+            SweetRequest request = SweetRequest.builder()
+                    .name("Test")
+                    .category(SweetCategory.BARFI)
+                    .price(BigDecimal.valueOf(100))
+                    .quantity(10)
+                    .build();
+
+            when(sweetRepository.findById(invalidId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> sweetService.updateSweet(invalidId, request))
+                    .isInstanceOf(ResourceNotFoundException.class);
+
+            verify(sweetRepository, never()).save(any(Sweet.class));
+        }
     }
 
-    @Test
-    @DisplayName("Should delete sweet successfully")
-    void deleteSweet_existingId_deletesSweet() {
-        when(sweetRepository.findById(any(UUID.class))).thenReturn(Optional.of(testSweet));
-        doNothing().when(sweetRepository).delete(any(Sweet.class));
+    @Nested
+    @DisplayName("Delete Sweet Tests")
+    class DeleteSweetTests {
 
-        sweetService.deleteSweet(testSweet.getId());
+        @Test
+        @DisplayName("Should delete sweet with valid ID")
+        void deleteSweet_WithValidId_DeletesSweet() {
+            when(sweetRepository.findById(sweetId)).thenReturn(Optional.of(testSweet));
+            doNothing().when(sweetRepository).delete(testSweet);
 
-        verify(sweetRepository).delete(testSweet);
+            sweetService.deleteSweet(sweetId);
+
+            verify(sweetRepository).findById(sweetId);
+            verify(sweetRepository).delete(testSweet);
+        }
+
+        @Test
+        @DisplayName("Should throw exception when deleting non-existent sweet")
+        void deleteSweet_WithInvalidId_ThrowsNotFound() {
+            UUID invalidId = UUID.randomUUID();
+            when(sweetRepository.findById(invalidId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> sweetService.deleteSweet(invalidId))
+                    .isInstanceOf(ResourceNotFoundException.class);
+
+            verify(sweetRepository, never()).delete(any(Sweet.class));
+        }
     }
 
-    @Test
-    @DisplayName("Should throw exception for insufficient stock")
-    void purchaseSweet_insufficientStock_throwsException() {
-        testSweet.setQuantity(5);
-        PurchaseRequest request = PurchaseRequest.builder()
-                .quantity(10)
-                .build();
+    @Nested
+    @DisplayName("Purchase Sweet Tests")
+    class PurchaseSweetTests {
 
-        when(sweetRepository.findById(any(UUID.class))).thenReturn(Optional.of(testSweet));
+        private void setUpSecurityContext() {
+            SecurityContextHolder.setContext(securityContext);
+            lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
+            lenient().when(authentication.getName()).thenReturn("user@example.com");
+        }
 
-        assertThatThrownBy(() -> sweetService.purchaseSweet(testSweet.getId(), request))
-                .isInstanceOf(InsufficientStockException.class);
+        @Test
+        @DisplayName("Should purchase sweet with sufficient stock")
+        void purchaseSweet_WithSufficientStock_ReducesQuantity() {
+            setUpSecurityContext();
+            PurchaseRequest request = PurchaseRequest.builder()
+                    .quantity(5)
+                    .build();
+
+            PurchaseHistory savedPurchase = PurchaseHistory.builder()
+                    .id(UUID.randomUUID())
+                    .user(testUser)
+                    .sweet(testSweet)
+                    .quantity(5)
+                    .unitPrice(testSweet.getPrice())
+                    .totalPrice(testSweet.getPrice().multiply(BigDecimal.valueOf(5)))
+                    .build();
+
+            when(sweetRepository.findById(sweetId)).thenReturn(Optional.of(testSweet));
+            when(sweetRepository.save(any(Sweet.class))).thenReturn(testSweet);
+            when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(testUser));
+            when(purchaseHistoryRepository.save(any(PurchaseHistory.class))).thenReturn(savedPurchase);
+
+            PurchaseResponse result = sweetService.purchaseSweet(sweetId, request);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getQuantity()).isEqualTo(5);
+            assertThat(testSweet.getQuantity()).isEqualTo(95); // 100 - 5
+
+            verify(sweetRepository).save(any(Sweet.class));
+            verify(purchaseHistoryRepository).save(any(PurchaseHistory.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when stock is insufficient")
+        void purchaseSweet_WithInsufficientStock_ThrowsException() {
+            testSweet.setQuantity(3);
+            PurchaseRequest request = PurchaseRequest.builder()
+                    .quantity(5)
+                    .build();
+
+            when(sweetRepository.findById(sweetId)).thenReturn(Optional.of(testSweet));
+
+            assertThatThrownBy(() -> sweetService.purchaseSweet(sweetId, request))
+                    .isInstanceOf(InsufficientStockException.class)
+                    .hasMessageContaining("Insufficient stock");
+
+            verify(sweetRepository, never()).save(any(Sweet.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when stock is zero")
+        void purchaseSweet_WithZeroStock_ThrowsException() {
+            testSweet.setQuantity(0);
+            PurchaseRequest request = PurchaseRequest.builder()
+                    .quantity(1)
+                    .build();
+
+            when(sweetRepository.findById(sweetId)).thenReturn(Optional.of(testSweet));
+
+            assertThatThrownBy(() -> sweetService.purchaseSweet(sweetId, request))
+                    .isInstanceOf(InsufficientStockException.class);
+        }
+
+        @Test
+        @DisplayName("Should record purchase history")
+        void purchaseSweet_RecordsPurchaseHistory() {
+            setUpSecurityContext();
+            PurchaseRequest request = PurchaseRequest.builder()
+                    .quantity(2)
+                    .build();
+
+            PurchaseHistory savedPurchase = PurchaseHistory.builder()
+                    .id(UUID.randomUUID())
+                    .user(testUser)
+                    .sweet(testSweet)
+                    .quantity(2)
+                    .unitPrice(testSweet.getPrice())
+                    .totalPrice(testSweet.getPrice().multiply(BigDecimal.valueOf(2)))
+                    .build();
+
+            when(sweetRepository.findById(sweetId)).thenReturn(Optional.of(testSweet));
+            when(sweetRepository.save(any(Sweet.class))).thenReturn(testSweet);
+            when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(testUser));
+            when(purchaseHistoryRepository.save(any(PurchaseHistory.class))).thenReturn(savedPurchase);
+
+            PurchaseResponse result = sweetService.purchaseSweet(sweetId, request);
+
+            assertThat(result.getTotalPrice()).isEqualByComparingTo(
+                    testSweet.getPrice().multiply(BigDecimal.valueOf(2))
+            );
+
+            verify(purchaseHistoryRepository).save(any(PurchaseHistory.class));
+        }
     }
 
-    @Test
-    @DisplayName("Should restock sweet successfully")
-    void restockSweet_withValidQuantity_increasesStock() {
-        RestockRequest request = RestockRequest.builder()
-                .quantity(50)
-                .build();
+    @Nested
+    @DisplayName("Restock Sweet Tests")
+    class RestockSweetTests {
 
-        when(sweetRepository.findById(any(UUID.class))).thenReturn(Optional.of(testSweet));
-        when(sweetRepository.save(any(Sweet.class))).thenReturn(testSweet);
+        @Test
+        @DisplayName("Should increase quantity with valid restock")
+        void restockSweet_WithValidData_IncreasesQuantity() {
+            RestockRequest request = RestockRequest.builder()
+                    .quantity(50)
+                    .build();
 
-        SweetResponse result = sweetService.restockSweet(testSweet.getId(), request);
+            when(sweetRepository.findById(sweetId)).thenReturn(Optional.of(testSweet));
+            when(sweetRepository.save(any(Sweet.class))).thenAnswer(i -> i.getArgument(0));
 
-        assertThat(testSweet.getQuantity()).isEqualTo(150); // 100 + 50
-        verify(sweetRepository).save(testSweet);
+            SweetResponse result = sweetService.restockSweet(sweetId, request);
+
+            assertThat(result.getQuantity()).isEqualTo(150); // 100 + 50
+
+            verify(sweetRepository).save(any(Sweet.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when restocking non-existent sweet")
+        void restockSweet_WithInvalidId_ThrowsNotFound() {
+            UUID invalidId = UUID.randomUUID();
+            RestockRequest request = RestockRequest.builder()
+                    .quantity(50)
+                    .build();
+
+            when(sweetRepository.findById(invalidId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> sweetService.restockSweet(invalidId, request))
+                    .isInstanceOf(ResourceNotFoundException.class);
+
+            verify(sweetRepository, never()).save(any(Sweet.class));
+        }
     }
 }

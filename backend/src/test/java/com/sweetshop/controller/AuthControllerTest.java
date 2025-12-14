@@ -8,6 +8,7 @@ import com.sweetshop.enums.UserRole;
 import com.sweetshop.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -16,20 +17,18 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Integration tests for AuthController.
- * Tests user registration and login endpoints.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
+@DisplayName("AuthController Integration Tests")
 class AuthControllerTest {
 
     @Autowired
@@ -49,148 +48,205 @@ class AuthControllerTest {
         userRepository.deleteAll();
     }
 
-    @Test
-    @DisplayName("Should register new user successfully")
-    void register_withValidData_returnsCreatedWithToken() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
-                .email("test@example.com")
-                .password("Password123")
-                .firstName("John")
-                .lastName("Doe")
-                .build();
+    @Nested
+    @DisplayName("Registration Endpoint Tests")
+    class RegistrationTests {
 
-        mockMvc.perform(post("/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.accessToken", notNullValue()))
-                .andExpect(jsonPath("$.tokenType", is("Bearer")))
-                .andExpect(jsonPath("$.user.email", is("test@example.com")))
-                .andExpect(jsonPath("$.user.firstName", is("John")))
-                .andExpect(jsonPath("$.user.role", is("USER")));
+        @Test
+        @DisplayName("Should register user with valid data - returns 201")
+        void register_WithValidData_Returns201() throws Exception {
+            RegisterRequest request = RegisterRequest.builder()
+                    .email("newuser@example.com")
+                    .password("Password123")
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            performRegister(request)
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                    .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                    .andExpect(jsonPath("$.user.email").value("newuser@example.com"))
+                    .andExpect(jsonPath("$.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.user.role").value("USER"));
+        }
+
+        @Test
+        @DisplayName("Should reject registration with missing email - returns 400")
+        void register_WithMissingEmail_Returns400() throws Exception {
+            RegisterRequest request = RegisterRequest.builder()
+                    .password("Password123")
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            performRegister(request)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.validationErrors.email").exists());
+        }
+
+        @Test
+        @DisplayName("Should reject registration with invalid email format - returns 400")
+        void register_WithInvalidEmail_Returns400() throws Exception {
+            RegisterRequest request = RegisterRequest.builder()
+                    .email("invalid-email")
+                    .password("Password123")
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            performRegister(request)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.validationErrors.email").exists());
+        }
+
+        @Test
+        @DisplayName("Should reject registration with short password - returns 400")
+        void register_WithShortPassword_Returns400() throws Exception {
+            RegisterRequest request = RegisterRequest.builder()
+                    .email("user@example.com")
+                    .password("short")
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            performRegister(request)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.validationErrors.password").exists());
+        }
+
+        @Test
+        @DisplayName("Should reject registration with duplicate email - returns 409")
+        void register_WithDuplicateEmail_Returns409() throws Exception {
+            // First registration
+            createTestUser("existing@example.com", "Password123", UserRole.USER);
+
+            // Duplicate registration
+            RegisterRequest request = RegisterRequest.builder()
+                    .email("existing@example.com")
+                    .password("Password123")
+                    .firstName("Another")
+                    .lastName("User")
+                    .build();
+
+            performRegister(request)
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.message").value(containsString("email")));
+        }
+
+        @Test
+        @DisplayName("Should reject registration with missing first name - returns 400")
+        void register_WithMissingFirstName_Returns400() throws Exception {
+            RegisterRequest request = RegisterRequest.builder()
+                    .email("user@example.com")
+                    .password("Password123")
+                    .lastName("Doe")
+                    .build();
+
+            performRegister(request)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.validationErrors.firstName").exists());
+        }
+
+        private ResultActions performRegister(RegisterRequest request) throws Exception {
+            return mockMvc.perform(post("/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+        }
     }
 
-    @Test
-    @DisplayName("Should reject duplicate email registration")
-    void register_withExistingEmail_returnsConflict() throws Exception {
-        // Create existing user
-        User existingUser = User.builder()
-                .email("existing@example.com")
-                .password(passwordEncoder.encode("password"))
-                .firstName("Existing")
-                .lastName("User")
-                .role(UserRole.USER)
-                .build();
-        userRepository.save(existingUser);
+    @Nested
+    @DisplayName("Login Endpoint Tests")
+    class LoginTests {
 
-        RegisterRequest request = RegisterRequest.builder()
-                .email("existing@example.com")
-                .password("Password123")
-                .firstName("New")
-                .lastName("User")
-                .build();
+        @Test
+        @DisplayName("Should login with valid credentials - returns 200")
+        void login_WithValidCredentials_Returns200() throws Exception {
+            createTestUser("user@example.com", "Password123", UserRole.USER);
 
-        mockMvc.perform(post("/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isConflict());
+            LoginRequest request = LoginRequest.builder()
+                    .email("user@example.com")
+                    .password("Password123")
+                    .build();
+
+            performLogin(request)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                    .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                    .andExpect(jsonPath("$.user.email").value("user@example.com"))
+                    .andExpect(jsonPath("$.user.role").value("USER"));
+        }
+
+        @Test
+        @DisplayName("Should login as admin and return admin role")
+        void login_AsAdmin_ReturnsAdminRole() throws Exception {
+            createTestUser("admin@example.com", "Password123", UserRole.ADMIN);
+
+            LoginRequest request = LoginRequest.builder()
+                    .email("admin@example.com")
+                    .password("Password123")
+                    .build();
+
+            performLogin(request)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.user.role").value("ADMIN"));
+        }
+
+        @Test
+        @DisplayName("Should reject login with wrong password - returns 401")
+        void login_WithInvalidCredentials_Returns401() throws Exception {
+            createTestUser("user@example.com", "Password123", UserRole.USER);
+
+            LoginRequest request = LoginRequest.builder()
+                    .email("user@example.com")
+                    .password("WrongPassword")
+                    .build();
+
+            performLogin(request)
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value(containsString("Invalid")));
+        }
+
+        @Test
+        @DisplayName("Should reject login with non-existent user - returns 401")
+        void login_WithNonExistentUser_Returns401() throws Exception {
+            LoginRequest request = LoginRequest.builder()
+                    .email("nonexistent@example.com")
+                    .password("Password123")
+                    .build();
+
+            performLogin(request)
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value(containsString("Invalid")));
+        }
+
+        @Test
+        @DisplayName("Should reject login with missing email - returns 400")
+        void login_WithMissingEmail_Returns400() throws Exception {
+            LoginRequest request = LoginRequest.builder()
+                    .password("Password123")
+                    .build();
+
+            performLogin(request)
+                    .andExpect(status().isBadRequest());
+        }
+
+        private ResultActions performLogin(LoginRequest request) throws Exception {
+            return mockMvc.perform(post("/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+        }
     }
 
-    @Test
-    @DisplayName("Should reject invalid email format")
-    void register_withInvalidEmail_returnsBadRequest() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
-                .email("invalid-email")
-                .password("Password123")
-                .firstName("John")
-                .lastName("Doe")
-                .build();
-
-        mockMvc.perform(post("/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.validationErrors.email", notNullValue()));
-    }
-
-    @Test
-    @DisplayName("Should reject short password")
-    void register_withShortPassword_returnsBadRequest() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
-                .email("test@example.com")
-                .password("short")
-                .firstName("John")
-                .lastName("Doe")
-                .build();
-
-        mockMvc.perform(post("/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.validationErrors.password", notNullValue()));
-    }
-
-    @Test
-    @DisplayName("Should login successfully with valid credentials")
-    void login_withValidCredentials_returnsToken() throws Exception {
-        // Create user first
+    private User createTestUser(String email, String password, UserRole role) {
         User user = User.builder()
-                .email("user@example.com")
-                .password(passwordEncoder.encode("Password123"))
+                .email(email)
+                .password(passwordEncoder.encode(password))
                 .firstName("Test")
                 .lastName("User")
-                .role(UserRole.USER)
+                .role(role)
                 .build();
-        userRepository.save(user);
-
-        LoginRequest request = LoginRequest.builder()
-                .email("user@example.com")
-                .password("Password123")
-                .build();
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken", notNullValue()))
-                .andExpect(jsonPath("$.user.email", is("user@example.com")));
-    }
-
-    @Test
-    @DisplayName("Should reject login with invalid password")
-    void login_withInvalidPassword_returnsUnauthorized() throws Exception {
-        // Create user first
-        User user = User.builder()
-                .email("user@example.com")
-                .password(passwordEncoder.encode("Password123"))
-                .firstName("Test")
-                .lastName("User")
-                .role(UserRole.USER)
-                .build();
-        userRepository.save(user);
-
-        LoginRequest request = LoginRequest.builder()
-                .email("user@example.com")
-                .password("WrongPassword")
-                .build();
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("Should reject login with non-existent email")
-    void login_withNonExistentEmail_returnsUnauthorized() throws Exception {
-        LoginRequest request = LoginRequest.builder()
-                .email("nonexistent@example.com")
-                .password("Password123")
-                .build();
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
+        return userRepository.save(user);
     }
 }

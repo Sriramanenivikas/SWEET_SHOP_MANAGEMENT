@@ -52,11 +52,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/sweets/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/sweets").permitAll()
-                        // Admin only endpoints
-                        .requestMatchers(HttpMethod.POST, "/sweets").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/sweets/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/sweets/**").hasRole("ADMIN")
+                        // Admin only endpoints - must come before generic patterns
                         .requestMatchers(HttpMethod.POST, "/sweets/*/restock").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/sweets").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/sweets/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/sweets/*").hasRole("ADMIN")
+                        // Purchase endpoint - any authenticated user
+                        .requestMatchers(HttpMethod.POST, "/sweets/*/purchase").authenticated()
                         // Authenticated endpoints
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())

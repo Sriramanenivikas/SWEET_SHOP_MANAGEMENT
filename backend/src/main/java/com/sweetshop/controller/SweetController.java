@@ -47,7 +47,7 @@ public class SweetController {
      * GET /api/sweets/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<SweetResponse> getSweetById(@PathVariable UUID id) {
+    public ResponseEntity<SweetResponse> getSweetById(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(sweetService.getSweetById(id));
     }
 
@@ -83,7 +83,7 @@ public class SweetController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SweetResponse> updateSweet(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @Valid @RequestBody SweetRequest request) {
         return ResponseEntity.ok(sweetService.updateSweet(id, request));
     }
@@ -94,7 +94,7 @@ public class SweetController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteSweet(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteSweet(@PathVariable("id") UUID id) {
         sweetService.deleteSweet(id);
         return ResponseEntity.noContent().build();
     }
@@ -105,7 +105,7 @@ public class SweetController {
      */
     @PostMapping("/{id}/purchase")
     public ResponseEntity<PurchaseResponse> purchaseSweet(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @Valid @RequestBody PurchaseRequest request) {
         return ResponseEntity.ok(sweetService.purchaseSweet(id, request));
     }
@@ -117,7 +117,7 @@ public class SweetController {
     @PostMapping("/{id}/restock")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SweetResponse> restockSweet(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @Valid @RequestBody RestockRequest request) {
         return ResponseEntity.ok(sweetService.restockSweet(id, request));
     }

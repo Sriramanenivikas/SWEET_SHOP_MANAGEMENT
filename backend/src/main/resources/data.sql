@@ -15,7 +15,7 @@ ON CONFLICT (email) DO NOTHING;
 -- Premium Sweets Collection
 INSERT INTO sweets (id, name, category, price, quantity, description, image_url, version, created_at, updated_at) VALUES
 -- TRADITIONAL
-('6ba7b810-9dad-11d1-80b4-00c04fd430c1', 'Kaju Katli', 'TRADITIONAL', 899.00, 50, 'Premium diamond-shaped cashew fudge with silver vark', 'https://images.unsplash.com/photo-1599707254554-027aeb4deacd?w=400', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('6ba7b810-9dad-11d1-80b4-00c04fd430c1', 'Kaju Katli', 'TRADITIONAL', 899.00, 50, 'Premium diamond-shaped cashew fudge with silver vark', '/burfi/Kaju_Barfi.jpg', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('6ba7b810-9dad-11d1-80b4-00c04fd430c2', 'Gulab Jamun', 'TRADITIONAL', 349.00, 100, 'Soft khoya balls soaked in rose-flavored sugar syrup', 'https://images.unsplash.com/photo-1666190020509-ce9a057d6189?w=400', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('6ba7b810-9dad-11d1-80b4-00c04fd430c3', 'Motichoor Ladoo', 'TRADITIONAL', 449.00, 80, 'Fine boondi pearls with cardamom and saffron', 'https://images.unsplash.com/photo-1605197161470-5c60b1a6d15c?w=400', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('6ba7b810-9dad-11d1-80b4-00c04fd430c4', 'Pista Barfi', 'TRADITIONAL', 749.00, 60, 'Rich pistachio fudge garnished with dry fruits', 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=400', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

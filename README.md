@@ -182,6 +182,21 @@ node seed-data.js
 | PUT | /api/sweets/{id} | Update sweet | Admin |
 | DELETE | /api/sweets/{id} | Delete sweet | Admin |
 
+**Sweet Object Structure:**
+```json
+{
+  "id": "uuid",
+  "name": "Kaju Katli",
+  "category": "BARFI",
+  "price": 450.00,
+  "quantity": 50,
+  "description": "Premium cashew fudge with silver vark",
+  "imageUrl": "/BARFI/Kaju_Barfi.jpg"
+}
+```
+
+Each sweet has: unique ID, name, category, price, and quantity in stock (as required).
+
 **Search Query Parameters:**
 - `name` - Filter by name (partial match, case-insensitive)
 - `category` - Filter by category (BARFI, LADOO, HALWA, TRADITIONAL, NAMKEEN)
@@ -194,8 +209,8 @@ node seed-data.js
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| POST | /api/sweets/{id}/purchase | Purchase a sweet | User or Admin |
-| POST | /api/sweets/{id}/restock | Restock a sweet | Admin only |
+| POST | /api/sweets/{id}/purchase | Purchase a sweet (decreases quantity) | User or Admin |
+| POST | /api/sweets/{id}/restock | Restock a sweet (increases quantity) | Admin only |
 
 ## Testing
 
@@ -214,6 +229,14 @@ mvn test jacoco:report
 
 The report will be available at `backend/target/site/jacoco/index.html`.
 
+### Test Report
+
+**Test Execution Summary:**
+```
+Tests run: 101, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
 ### Coverage Summary
 
 | Package | Coverage |
@@ -228,6 +251,43 @@ The test suite includes 101 tests covering:
 - Integration tests for REST endpoints
 - Security tests for authentication and authorization
 - Repository tests for data access layer
+
+### Test Categories
+
+| Category | Count | Description |
+|----------|-------|-------------|
+| AuthServiceTest | 7 | Registration, login, password encoding |
+| SweetServiceTest | 17 | CRUD operations, search, purchase, restock |
+| JwtTokenProviderTest | 9 | Token generation, validation, expiry |
+| AuthControllerTest | 11 | Auth endpoint integration tests |
+| SweetControllerTest | 28 | Sweet endpoint integration tests |
+| UserRepositoryTest | 6 | User data access tests |
+| SweetRepositoryTest | 12 | Sweet data access tests |
+| SecurityConfigTest | 10 | Security configuration tests |
+| SweetShopApplicationTests | 1 | Application context test |
+
+## Screenshots
+
+### Landing Page
+[Screenshot placeholder - Landing page with hero section]
+
+### Shop Page - Product Catalog
+[Screenshot placeholder - Grid of sweets with images and prices]
+
+### Search and Filter
+[Screenshot placeholder - Search bar and category filter in action]
+
+### Product Purchase
+[Screenshot placeholder - Purchase modal with quantity selector]
+
+### Admin Dashboard
+[Screenshot placeholder - Admin panel with product management]
+
+### Login Page
+[Screenshot placeholder - Login form]
+
+### Register Page
+[Screenshot placeholder - Registration form]
 
 ## Deployment
 

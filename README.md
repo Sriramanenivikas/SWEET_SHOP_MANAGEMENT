@@ -230,22 +230,23 @@ mvn test jacoco:report
 ## Screenshots
 
 ### Login Page
-(screenshots/login.png)
+<img width="1280" height="719" alt="image" src="https://github.com/user-attachments/assets/b1980a3c-7300-4646-842a-c6d47782ee50" />
+
 
 ### Shop Page - Product Catalog
-![Shop Page](screenshots/shop.png)
+<img width="1280" height="719" alt="image" src="https://github.com/user-attachments/assets/a8cbec12-9987-463a-b29a-d4bc73c3b2f6" />
 
-### Search and Filter
-![Search Filter](screenshots/search.png)
+ 
+### Products 
+<img width="1280" height="725" alt="image" src="https://github.com/user-attachments/assets/946cade3-2afa-4051-9717-39fca631aedd" />
 
-### Product Purchase
-![Purchase](screenshots/purchase.png)
 
-### Admin Dashboard
-![Admin Dashboard](screenshots/admin.png)
+### Admin Dashboard 
+<img width="1280" height="718" alt="image" src="https://github.com/user-attachments/assets/b4b659b1-b59e-4868-93b1-6414524c0463" />
 
 ### Register Page
-![Register](screenshots/register.png)
+<img width="1280" height="725" alt="image" src="https://github.com/user-attachments/assets/ef3b2371-6780-49e7-a717-e1a7de284e5a" />
+
 
 ## Development Journey
 

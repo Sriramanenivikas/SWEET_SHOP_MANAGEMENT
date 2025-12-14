@@ -19,8 +19,8 @@ export default function Register() {
       setError('Passwords do not match');
       return;
     }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -36,53 +36,147 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link to="/" className="text-2xl font-semibold text-gray-900">Sweet Shop</Link>
-          <h1 className="mt-6 text-3xl font-semibold text-gray-900">Create account</h1>
-          <p className="mt-2 text-gray-500">Join us to start shopping.</p>
+    <div className="min-h-screen flex" style={{ backgroundColor: '#FDF8F3' }}>
+      {/* Left side - Form */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-8">
+            <Link to="/" className="inline-flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-red-700 flex items-center justify-center">
+                <span className="text-yellow-400 text-xl font-serif font-bold">S</span>
+              </div>
+              <span className="text-xl font-serif font-bold text-red-800">Sweet Shop</span>
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-xl p-8 shadow-lg" style={{ border: '2px solid #D4A853' }}>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-serif font-bold text-gray-800">Create Account</h2>
+              <p className="text-gray-500 mt-1">Join our sweet family</p>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 text-center">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+                    placeholder="John"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  minLength={8}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+                  placeholder="Min 8 characters"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+                  placeholder="Confirm password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 text-white font-semibold rounded-lg transition-all disabled:opacity-50 mt-2"
+                style={{
+                  background: 'linear-gradient(135deg, #C41E3A 0%, #A01830 100%)',
+                  boxShadow: '0 4px 12px rgba(196, 30, 58, 0.3)'
+                }}
+              >
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-500">
+                Already have an account?{' '}
+                <Link to="/login" className="font-semibold text-red-700 hover:text-red-800">
+                  Sign In
+                </Link>
+              </p>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          {error && <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">{error}</div>}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">First Name</label>
-                <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none" placeholder="John" />
+      {/* Right side - Decorative */}
+      <div
+        className="hidden lg:flex lg:w-1/2 items-center justify-center p-12"
+        style={{
+          background: 'linear-gradient(135deg, #D4A853 0%, #C49A3D 100%)'
+        }}
+      >
+        <div className="text-center text-white">
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-white/10 flex items-center justify-center">
+            <span className="text-5xl">🍬</span>
+          </div>
+          <h2 className="text-3xl font-serif font-bold mb-4">Join Our Family</h2>
+          <p className="text-lg opacity-90 mb-6 max-w-sm">
+            Get access to exclusive deals, new arrivals, and special festive collections
+          </p>
+          <div className="flex flex-col gap-3 text-left max-w-xs mx-auto">
+            {['Premium quality sweets', 'Fast delivery', 'Exclusive member offers'].map((item) => (
+              <div key={item} className="flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">✓</span>
+                <span className="text-sm">{item}</span>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
-                <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none" placeholder="Doe" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none" placeholder="you@example.com" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange} required minLength={6} className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none" placeholder="At least 6 characters" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
-              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none" placeholder="Confirm your password" />
-            </div>
-
-            <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
-              {loading ? 'Creating account...' : 'Create Account'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <span className="text-sm text-gray-500">
-              Already have an account? <Link to="/login" className="text-blue-600 hover:underline font-medium">Sign in</Link>
-            </span>
+            ))}
           </div>
         </div>
       </div>

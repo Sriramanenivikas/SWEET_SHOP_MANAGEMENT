@@ -1,106 +1,51 @@
 import { useState } from 'react';
 
-const CATEGORIES = [
-  { value: '', label: 'All Categories' },
-  { value: 'CHOCOLATE', label: 'Chocolate' },
-  { value: 'CANDY', label: 'Candy' },
-  { value: 'PASTRY', label: 'Pastry' },
-  { value: 'COOKIE', label: 'Cookie' },
-  { value: 'CAKE', label: 'Cake' },
-  { value: 'ICE_CREAM', label: 'Ice Cream' },
-  { value: 'OTHER', label: 'Other' },
-];
-
 export default function SearchFilter({ onSearch }) {
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
 
   const handleSearch = (e) => {
     e.preventDefault();
-    onSearch({
-      name: name || undefined,
-      category: category || undefined,
-      minPrice: minPrice || undefined,
-      maxPrice: maxPrice || undefined,
-    });
+    onSearch({ name: name || undefined });
   };
 
   const handleClear = () => {
     setName('');
-    setCategory('');
-    setMinPrice('');
-    setMaxPrice('');
     onSearch({});
   };
 
   return (
-    <form onSubmit={handleSearch} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="lg:col-span-2">
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Search</label>
+    <form onSubmit={handleSearch} className="bg-white rounded-lg p-4 shadow-sm" style={{ border: '1px solid #E8E0D5' }}>
+      <div className="flex gap-3">
+        <div className="flex-1 relative">
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Search sweets..."
-            className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+            placeholder="Search for sweets..."
+            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
           />
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
         </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Category</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none appearance-none cursor-pointer"
-          >
-            {CATEGORIES.map((cat) => (
-              <option key={cat.value} value={cat.value}>{cat.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Price Range</label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              placeholder="Min"
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
-            />
-            <input
-              type="number"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              placeholder="Max"
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-end gap-2">
-          <button
-            type="submit"
-            className="flex-1 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            Search
-          </button>
+        <button
+          type="submit"
+          className="px-6 py-3 text-sm font-semibold text-white rounded-lg transition-all"
+          style={{
+            background: 'linear-gradient(135deg, #C41E3A 0%, #A01830 100%)',
+          }}
+        >
+          Search
+        </button>
+        {name && (
           <button
             type="button"
             onClick={handleClear}
-            className="px-4 py-2.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors"
+            className="px-4 py-3 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
           >
             Clear
           </button>
-        </div>
+        )}
       </div>
     </form>
   );

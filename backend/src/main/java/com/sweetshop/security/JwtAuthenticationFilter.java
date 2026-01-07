@@ -40,12 +40,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = extractJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
+            if (StringUtils.hasText(jwt)) {
+                if (!jwtTokenProvider.validateToken(jwt)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Token expired or invalid\",\"code\":\"TOKEN_EXPIRED\"}");
+                    return;
+                }
+
                 String jti = jwtTokenProvider.getJtiFromToken(jwt);
                 
                 if (tokenBlacklistService.isBlacklisted(jti)) {
                     logger.warn("Attempted use of blacklisted token: " + jti);
-                    filterChain.doFilter(request, response);
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Token has been revoked\",\"code\":\"TOKEN_REVOKED\"}");
                     return;
                 }
 
@@ -64,6 +73,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             logger.error("Cannot set user authentication", e);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\":\"Authentication failed\",\"code\":\"AUTH_ERROR\"}");
+            return;
         }
 
         filterChain.doFilter(request, response);

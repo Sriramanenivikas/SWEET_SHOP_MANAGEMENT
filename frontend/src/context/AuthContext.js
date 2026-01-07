@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -26,9 +26,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await authAPI.login(email, password);
-    const { accessToken, user: userData } = response.data;
+    const { accessToken, refreshToken, user: userData } = response.data;
     
     localStorage.setItem('token', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     
@@ -40,11 +41,34 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-  };
+  const logout = useCallback(async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        await authAPI.logout(refreshToken);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      setUser(null);
+    }
+  }, []);
+
+  const logoutAll = useCallback(async () => {
+    try {
+      await authAPI.logoutAll();
+    } catch (error) {
+      console.error('Logout all error:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      setUser(null);
+    }
+  }, []);
 
   const isAdmin = user?.role === 'ADMIN';
   const isAuthenticated = !!user;
@@ -55,6 +79,7 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      logoutAll,
       isAdmin,
       isAuthenticated,
       loading

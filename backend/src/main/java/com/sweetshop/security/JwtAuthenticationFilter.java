@@ -1,7 +1,9 @@
 package com.sweetshop.security;
 
+import com.sweetshop.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -14,10 +16,12 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * JWT authentication filter that validates tokens on each request.
- * Extracts JWT from Authorization header and sets authentication context.
+ * Extracts JWT from HttpOnly cookie or Authorization header.
+ * Checks token blacklist before authentication.
  */
 @Component
 @RequiredArgsConstructor
@@ -25,6 +29,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
+
+    private static final String ACCESS_TOKEN_COOKIE = "access_token";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -34,6 +41,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = extractJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
+                String jti = jwtTokenProvider.getJtiFromToken(jwt);
+                
+                if (tokenBlacklistService.isBlacklisted(jti)) {
+                    logger.warn("Attempted use of blacklisted token: " + jti);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 String email = jwtTokenProvider.getEmailFromToken(jwt);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
@@ -55,9 +70,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extract JWT token from Authorization header.
+     * Extract JWT token from HttpOnly cookie first, then Authorization header.
      */
     private String extractJwtFromRequest(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            return Arrays.stream(cookies)
+                    .filter(cookie -> ACCESS_TOKEN_COOKIE.equals(cookie.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElse(extractFromHeader(request));
+        }
+        return extractFromHeader(request);
+    }
+
+    private String extractFromHeader(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);

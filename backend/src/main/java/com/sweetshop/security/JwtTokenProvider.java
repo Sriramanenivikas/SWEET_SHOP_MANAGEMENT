@@ -9,11 +9,14 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * Utility class for JWT token generation and validation.
  * Handles creation, parsing, and validation of JWT tokens.
+ * Includes JTI (JWT ID) for token blacklisting support.
  */
 @Component
 public class JwtTokenProvider {
@@ -38,13 +41,14 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Generate JWT token from email/username.
+     * Generate JWT token from email/username with unique JTI.
      */
     public String generateToken(String email) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(email)
                 .issuedAt(now)
                 .expiration(expiryDate)
@@ -56,17 +60,39 @@ public class JwtTokenProvider {
      * Extract email from JWT token.
      */
     public String getEmailFromToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
+        Claims claims = getClaims(token);
         return claims.getSubject();
     }
 
     /**
-     * Validate JWT token.
+     * Extract JTI (JWT ID) from token for blacklist checking.
+     */
+    public String getJtiFromToken(String token) {
+        Claims claims = getClaims(token);
+        return claims.getId();
+    }
+
+    /**
+     * Extract expiration date from token.
+     */
+    public Instant getExpirationFromToken(String token) {
+        Claims claims = getClaims(token);
+        return claims.getExpiration().toInstant();
+    }
+
+    /**
+     * Get all claims from token.
+     */
+    private Claims getClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    /**
+     * Validate JWT token structure and signature.
      */
     public boolean validateToken(String token) {
         try {
@@ -78,5 +104,12 @@ public class JwtTokenProvider {
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    /**
+     * Get token expiration time in milliseconds.
+     */
+    public long getExpirationMs() {
+        return jwtExpiration;
     }
 }

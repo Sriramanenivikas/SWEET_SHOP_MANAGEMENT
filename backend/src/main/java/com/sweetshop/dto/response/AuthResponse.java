@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Response DTO for authentication containing JWT token.
+ * Response DTO for authentication containing JWT tokens.
  */
 @Data
 @Builder
@@ -15,6 +15,8 @@ import lombok.NoArgsConstructor;
 public class AuthResponse {
 
     private String accessToken;
+    
+    private String refreshToken;
     
     @Builder.Default
     private String tokenType = "Bearer";

@@ -45,6 +45,13 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidToken(
+            InvalidTokenException ex, HttpServletRequest request) {
+        log.warn("Invalid token: {} - Path: {}", ex.getMessage(), request.getRequestURI());
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+    }
+
     @ExceptionHandler({BadCredentialsException.class, 
             com.sweetshop.exception.BadCredentialsException.class})
     public ResponseEntity<ErrorResponse> handleBadCredentials(

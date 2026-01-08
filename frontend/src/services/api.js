@@ -2,47 +2,44 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
+// SECURE: Tokens are stored in HttpOnly cookies, NOT in localStorage
+// JavaScript cannot access HttpOnly cookies - protects against XSS attacks
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: true, // IMPORTANT: Send cookies with every request
 });
 
 let isRefreshing = false;
 let failedQueue = [];
 
-const processQueue = (error, token = null) => {
+const processQueue = (error) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      prom.resolve();
     }
   });
   failedQueue = [];
 };
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// No request interceptor needed - cookies are sent automatically by browser
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 401 - token expired or invalid
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // If already refreshing, queue this request
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+        }).then(() => {
           return api(originalRequest);
         }).catch(err => {
           return Promise.reject(err);
@@ -52,39 +49,19 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
-      
-      if (!refreshToken) {
-        isRefreshing = false;
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
       try {
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, 
-          { refreshToken },
-          { withCredentials: true }
-        );
+        // Call refresh endpoint - cookies sent automatically
+        await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
         
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
+        // Refresh successful - new cookies are set automatically by backend
+        processQueue(null);
         
-        localStorage.setItem('token', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
-        
-        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        
-        processQueue(null, accessToken);
-        
+        // Retry original request - new cookies will be sent
         return api(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
+        // Refresh failed - user must login again
+        processQueue(refreshError);
+        localStorage.removeItem('user'); // Only remove user info, not tokens
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
@@ -99,8 +76,8 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (data) => api.post('/auth/register', data),
-  refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
-  logout: (refreshToken) => api.post('/auth/logout', { refreshToken }),
+  refresh: () => api.post('/auth/refresh', {}), // No need to send refresh token - it's in cookie
+  logout: () => api.post('/auth/logout', {}),   // No need to send refresh token - it's in cookie
   logoutAll: () => api.post('/auth/logout-all'),
 };
 

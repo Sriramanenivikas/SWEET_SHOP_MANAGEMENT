@@ -16,9 +16,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Only store user info in localStorage (not tokens!)
+    // Tokens are stored in HttpOnly cookies - JavaScript cannot access them
     const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    if (storedUser && storedToken) {
+    if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
     setLoading(false);
@@ -26,10 +27,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await authAPI.login(email, password);
-    const { accessToken, refreshToken, user: userData } = response.data;
+    const { user: userData } = response.data;
     
-    localStorage.setItem('token', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    // SECURE: Only store user info, NOT tokens
+    // Tokens are automatically stored in HttpOnly cookies by backend
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     
@@ -38,20 +39,22 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     const response = await authAPI.register(data);
-    return response.data;
+    const { user: userData } = response.data;
+    
+    // SECURE: Only store user info, NOT tokens
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    
+    return userData;
   };
 
   const logout = useCallback(async () => {
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        await authAPI.logout(refreshToken);
-      }
+      // Cookies are sent automatically - no need to pass refresh token
+      await authAPI.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       setUser(null);
     }
@@ -63,8 +66,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout all error:', error);
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       setUser(null);
     }
